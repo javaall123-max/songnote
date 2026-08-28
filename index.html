@@ -138,6 +138,16 @@
     justify-content:center;
     padding:0 3px;
   }
+  .sync-dot{
+    position:absolute;
+    top:2px;
+    right:2px;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#3DD68C;
+    border:1.5px solid var(--bg);
+  }
   .sort-row{
     display:flex;
     gap:6px;
@@ -481,6 +491,69 @@
     font-size:13px;
     padding:30px 10px;
   }
+
+  .sync-section{
+    background:#151524;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .sync-section-title{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+  .sync-desc{
+    font-size:12px;
+    color:var(--text-dim);
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+  .sync-full-btn{ width:100%; }
+  .sync-join-row{
+    display:flex;
+    gap:8px;
+  }
+  .sync-join-row input{
+    flex:1;
+    min-width:0;
+    padding:9px 10px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    font-size:14px;
+    font-family:'Orbitron', sans-serif;
+    letter-spacing:1px;
+    outline:none;
+  }
+  .sync-join-row input:focus{ border-color:var(--coral); }
+  .sync-join-row button{
+    flex-shrink:0;
+    padding:0 16px;
+  }
+  .sync-code-display{
+    font-family:'Orbitron', sans-serif;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:3px;
+    text-align:center;
+    color:var(--amber);
+    background:#151524;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px 10px;
+    margin-bottom:14px;
+  }
+  .sync-status{
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:center;
+    margin:10px 0 0;
+    min-height:16px;
+  }
 </style>
 </head>
 <body>
@@ -498,6 +571,10 @@
       <input type="text" id="searchInput" placeholder="번호, 제목, 가수명으로 검색">
     </div>
     <button class="icon-action-btn" id="openAddBtn" aria-label="추가">+</button>
+    <button class="icon-action-btn" id="openSyncBtn" aria-label="동기화">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="syncIcon"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><path d="M12 12v9"/><path d="m16 17-4 4-4-4"/></svg>
+      <span class="sync-dot" id="syncDot" style="display:none;"></span>
+    </button>
     <button class="icon-action-btn" id="openTrashBtn" aria-label="휴지통">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       <span class="trash-badge" id="trashBadge" style="display:none;">0</span>
@@ -575,9 +652,52 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="syncOverlay" style="display:none;">
+  <div class="modal trash-modal">
+    <div class="trash-modal-head">
+      <span>여러 기기 동기화</span>
+      <button class="icon-btn" id="closeSyncBtn" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+
+    <div id="syncNotConfigured" style="display:none;">
+      <p class="search-hint" style="color:var(--danger);">Firebase 설정이 아직 연결되지 않았습니다. index.html 상단의 firebaseConfig 값을 채워주세요.</p>
+    </div>
+
+    <div id="syncDisconnectedView">
+      <p class="search-hint" style="margin-bottom:14px;">같은 코드를 입력한 기기끼리 노래 목록이 자동으로 맞춰집니다.</p>
+
+      <div class="sync-section">
+        <div class="sync-section-title">새로 시작하기</div>
+        <p class="sync-desc">이 기기의 목록을 기준으로 새 동기화 코드를 만듭니다.</p>
+        <button class="btn-restore sync-full-btn" id="createCodeBtn">새 코드 만들기</button>
+      </div>
+
+      <div class="sync-section">
+        <div class="sync-section-title">기존 코드로 연결하기</div>
+        <p class="sync-desc">다른 기기에서 만든 코드를 입력하면, 이 기기의 목록이 그 코드의 목록으로 바뀝니다.</p>
+        <div class="sync-join-row">
+          <input type="text" id="joinCodeInput" placeholder="코드 입력 (예: AB3K9F2Q)">
+          <button class="btn-restore" id="joinCodeBtn">연결</button>
+        </div>
+      </div>
+      <p class="sync-status" id="syncStatusMsg"></p>
+    </div>
+
+    <div id="syncConnectedView" style="display:none;">
+      <p class="search-hint" style="margin-bottom:10px;">현재 이 코드로 연결되어 있습니다. 다른 기기에서도 아래 코드를 입력하면 목록이 공유됩니다.</p>
+      <div class="sync-code-display" id="syncCodeDisplay"></div>
+      <button class="btn-restore sync-full-btn" id="copyCodeBtn" style="margin-bottom:8px;">코드 복사</button>
+      <button class="btn-purge sync-full-btn" id="disconnectSyncBtn">연결 해제</button>
+      <p class="sync-status" id="syncStatusMsg2"></p>
+    </div>
+  </div>
+</div>
+
 <script>
-let songs = [];
-let trash = [];
+var songs = [];
+var trash = [];
 let sortKey = 'num';
 let searchQuery = '';
 let editingId = null;
@@ -956,5 +1076,205 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+
+<script type="module">
+// ────────────────────────────────────────────────────────────
+// 여러 기기 동기화 (Firebase Firestore + 익명 로그인 + 동기화 코드)
+// 아래 firebaseConfig 값을 본인의 Firebase 프로젝트 값으로 채워주세요.
+// (Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성 에서 복사)
+// ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC_RBhu-PM1qVU6uAJNeBTpg_av-ogYWhc",
+  authDomain: "songnote-d63f3.firebaseapp.com",
+  projectId: "songnote-d63f3",
+  storageBucket: "songnote-d63f3.firebasestorage.app",
+  messagingSenderId: "720846199529",
+  appId: "1:720846199529:web:6905ecb223c7ebf7882e78"
+};
+
+const SYNC_CODE_KEY = 'karaoke_sync_code';
+const COLLECTION = 'karaoke_note';
+
+const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith('YOUR_'));
+
+const openSyncBtn = document.getElementById('openSyncBtn');
+const syncOverlay = document.getElementById('syncOverlay');
+const closeSyncBtn = document.getElementById('closeSyncBtn');
+const syncNotConfigured = document.getElementById('syncNotConfigured');
+const syncDisconnectedView = document.getElementById('syncDisconnectedView');
+const syncConnectedView = document.getElementById('syncConnectedView');
+const createCodeBtn = document.getElementById('createCodeBtn');
+const joinCodeInput = document.getElementById('joinCodeInput');
+const joinCodeBtn = document.getElementById('joinCodeBtn');
+const syncStatusMsg = document.getElementById('syncStatusMsg');
+const syncStatusMsg2 = document.getElementById('syncStatusMsg2');
+const syncCodeDisplay = document.getElementById('syncCodeDisplay');
+const copyCodeBtn = document.getElementById('copyCodeBtn');
+const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
+const syncDot = document.getElementById('syncDot');
+
+let db = null;
+let auth = null;
+let unsubscribe = null;
+let applyingRemote = false; // 원격 변경을 반영하는 동안 재전송(루프) 방지
+
+function genCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리는 글자(0,O,1,I) 제외
+  let out = '';
+  for(let i=0;i<8;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+function updateModalView(){
+  const code = localStorage.getItem(SYNC_CODE_KEY);
+  if(code){
+    syncDisconnectedView.style.display = 'none';
+    syncConnectedView.style.display = 'block';
+    syncCodeDisplay.textContent = code;
+    syncDot.style.display = 'block';
+  }else{
+    syncDisconnectedView.style.display = 'block';
+    syncConnectedView.style.display = 'none';
+    syncDot.style.display = 'none';
+  }
+}
+
+async function ensureFirebase(){
+  if(db) return true;
+  if(!isConfigured) return false;
+  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+  const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+  const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  await signInAnonymously(auth);
+  return true;
+}
+
+async function pushToCloud(){
+  if(!db) return;
+  const code = localStorage.getItem(SYNC_CODE_KEY);
+  if(!code) return;
+  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  await setDoc(doc(db, COLLECTION, code), {
+    songs: window.songs || [],
+    trash: window.trash || [],
+    updatedAt: Date.now()
+  });
+}
+
+function startListening(code){
+  if(unsubscribe) unsubscribe();
+  import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js').then(({ doc, onSnapshot })=>{
+    unsubscribe = onSnapshot(doc(db, COLLECTION, code), (snap)=>{
+      if(!snap.exists()) return;
+      const data = snap.data();
+      applyingRemote = true;
+      window.songs = data.songs || [];
+      window.trash = data.trash || [];
+      localStorage.setItem('karaoke_songs', JSON.stringify(window.songs));
+      localStorage.setItem('karaoke_songs_trash', JSON.stringify(window.trash));
+      window.render();
+      window.renderTrashBadge();
+      applyingRemote = false;
+    });
+  });
+}
+
+// 기존 저장 함수를 감싸서, 저장할 때마다 클라우드에도 반영되게 함
+function wrapSaveFunctions(){
+  const originalSaveSongs = window.saveSongs;
+  const originalSaveTrash = window.saveTrash;
+  window.saveSongs = async function(){
+    await originalSaveSongs();
+    if(!applyingRemote) pushToCloud();
+  };
+  window.saveTrash = async function(){
+    await originalSaveTrash();
+    if(!applyingRemote) pushToCloud();
+  };
+}
+
+async function createNewCode(){
+  syncStatusMsg.textContent = '연결 중...';
+  const ok = await ensureFirebase();
+  if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
+  const code = genCode();
+  localStorage.setItem(SYNC_CODE_KEY, code);
+  await pushToCloud();
+  startListening(code);
+  syncStatusMsg.textContent = '';
+  updateModalView();
+}
+
+async function joinExistingCode(){
+  const code = joinCodeInput.value.trim().toUpperCase();
+  if(!code){ syncStatusMsg.textContent = '코드를 입력해 주세요.'; return; }
+  syncStatusMsg.textContent = '연결 중...';
+  const ok = await ensureFirebase();
+  if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
+  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  const snap = await getDoc(doc(db, COLLECTION, code));
+  if(!snap.exists()){
+    syncStatusMsg.textContent = '해당 코드를 찾을 수 없습니다. 코드를 다시 확인해 주세요.';
+    return;
+  }
+  const data = snap.data();
+  applyingRemote = true;
+  window.songs = data.songs || [];
+  window.trash = data.trash || [];
+  localStorage.setItem('karaoke_songs', JSON.stringify(window.songs));
+  localStorage.setItem('karaoke_songs_trash', JSON.stringify(window.trash));
+  window.render();
+  window.renderTrashBadge();
+  applyingRemote = false;
+  localStorage.setItem(SYNC_CODE_KEY, code);
+  startListening(code);
+  syncStatusMsg.textContent = '';
+  joinCodeInput.value = '';
+  updateModalView();
+}
+
+function disconnectSync(){
+  if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+  localStorage.removeItem(SYNC_CODE_KEY);
+  syncStatusMsg2.textContent = '';
+  updateModalView();
+}
+
+openSyncBtn.addEventListener('click', async ()=>{
+  syncOverlay.style.display = 'flex';
+  syncNotConfigured.style.display = isConfigured ? 'none' : 'block';
+  updateModalView();
+});
+closeSyncBtn.addEventListener('click', ()=> syncOverlay.style.display = 'none');
+syncOverlay.addEventListener('click', (e)=>{ if(e.target === syncOverlay) syncOverlay.style.display = 'none'; });
+createCodeBtn.addEventListener('click', createNewCode);
+joinCodeBtn.addEventListener('click', joinExistingCode);
+joinCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') joinExistingCode(); });
+copyCodeBtn.addEventListener('click', ()=>{
+  const code = localStorage.getItem(SYNC_CODE_KEY);
+  if(code){
+    navigator.clipboard.writeText(code).then(()=>{
+      syncStatusMsg2.textContent = '복사되었습니다.';
+      setTimeout(()=> syncStatusMsg2.textContent = '', 1500);
+    });
+  }
+});
+disconnectSyncBtn.addEventListener('click', disconnectSync);
+
+// 앱 시작 시, 이미 연결된 코드가 있으면 자동으로 동기화 재개
+window.addEventListener('load', async ()=>{
+  wrapSaveFunctions();
+  const code = localStorage.getItem(SYNC_CODE_KEY);
+  if(code && isConfigured){
+    const ok = await ensureFirebase();
+    if(ok) startListening(code);
+  }
+  syncDot.style.display = code ? 'block' : 'none';
+});
+</script>
+
 </body>
 </html>
