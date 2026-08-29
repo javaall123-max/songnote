@@ -73,13 +73,13 @@
   }
   .toolbar{
     display:flex;
-    gap:10px;
+    gap:4px;
     margin-bottom:16px;
     flex-wrap:wrap;
   }
   .search-box{
     flex:1;
-    min-width:160px;
+    min-width:110px;
     position:relative;
   }
   .search-box input{
@@ -105,13 +105,13 @@
   }
   .icon-action-btn{
     position:relative;
-    width:42px;
-    height:42px;
+    width:36px;
+    height:36px;
     flex-shrink:0;
     background:transparent;
     color:var(--coral);
     border:none;
-    font-size:22px;
+    font-size:20px;
     font-weight:700;
     line-height:1;
     cursor:pointer;
@@ -573,14 +573,14 @@
     </div>
     <button class="icon-action-btn" id="openAddBtn" aria-label="추가">+</button>
     <button class="icon-action-btn" id="openSyncBtn" aria-label="동기화">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="syncIcon"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><path d="M12 12v9"/><path d="m16 17-4 4-4-4"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="syncIcon"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><path d="M12 12v9"/><path d="m16 17-4 4-4-4"/></svg>
       <span class="sync-dot" id="syncDot" style="display:none;"></span>
     </button>
     <button class="icon-action-btn" id="openBackupBtn" aria-label="백업">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
     </button>
     <button class="icon-action-btn" id="openTrashBtn" aria-label="휴지통">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       <span class="trash-badge" id="trashBadge" style="display:none;">0</span>
     </button>
   </div>
