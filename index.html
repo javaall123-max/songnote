@@ -348,6 +348,11 @@
     margin-top:5px;
     display:none;
   }
+  .dup-hint{
+    color:var(--amber);
+    font-size:12px;
+    margin-top:5px;
+  }
   .search-launch-row{
     display:flex;
     gap:8px;
@@ -608,6 +613,7 @@
       <div class="field-body">
         <input type="text" id="inputNum" placeholder="예: 12345" inputmode="numeric" pattern="[0-9]*">
         <div class="err">노래방 번호를 입력해 주세요.</div>
+        <div class="dup-hint" id="numDupHint" style="display:none;"></div>
       </div>
     </div>
     <div class="field" id="fieldTitle">
@@ -826,6 +832,7 @@ function openAddModal(){
   renderStarPicker();
   deleteBtn.style.display = 'none';
   clearErrors();
+  numDupHint.style.display = 'none';
   modalOverlay.style.display = 'flex';
   setTimeout(()=>inputNum.focus(), 50);
 }
@@ -841,6 +848,7 @@ function openEditModal(id){
   renderStarPicker();
   deleteBtn.style.display = 'block';
   clearErrors();
+  numDupHint.style.display = 'none';
   modalOverlay.style.display = 'flex';
   setTimeout(()=>inputNum.focus(), 50);
 }
@@ -875,6 +883,12 @@ function validateAndSave(){
     valid = false;
   }
   if(!valid) return;
+
+  const duplicate = songs.find(s => s.num === num && s.id !== editingId);
+  if(duplicate){
+    const ok = confirm(`이미 등록된 번호입니다.\n(${duplicate.num} · ${duplicate.title} - ${duplicate.singer})\n\n그래도 저장하시겠습니까?`);
+    if(!ok) return;
+  }
 
   if(editingId){
     const song = songs.find(s => s.id === editingId);
@@ -1056,7 +1070,21 @@ document.getElementById('searchInput').addEventListener('input', (e)=>{
 inputNum.addEventListener('input', ()=>{
   const filtered = inputNum.value.replace(/[^0-9]/g, '');
   if(filtered !== inputNum.value) inputNum.value = filtered;
+  updateNumDupHint();
 });
+
+const numDupHint = document.getElementById('numDupHint');
+function updateNumDupHint(){
+  const num = inputNum.value.trim();
+  if(!num){ numDupHint.style.display = 'none'; return; }
+  const dup = songs.find(s => s.num === num && s.id !== editingId);
+  if(dup){
+    numDupHint.textContent = `이미 등록된 번호입니다 (${dup.title} - ${dup.singer})`;
+    numDupHint.style.display = 'block';
+  }else{
+    numDupHint.style.display = 'none';
+  }
+}
 
 function renderTrashBadge(){
   if(trash.length > 0){
