@@ -700,9 +700,9 @@
 
       <div class="sync-section">
         <div class="sync-section-title">새로 시작하기</div>
-        <p class="sync-desc">이 기기의 목록을 기준으로, 사용할 6자리 코드(영문/숫자)를 직접 정해주세요.</p>
+        <p class="sync-desc">이 기기의 목록을 기준으로, 사용할 8자리 코드(영문/숫자)를 직접 정해주세요.</p>
         <div class="sync-join-row">
-          <input type="text" id="newCodeInput" placeholder="6자리 (영문/숫자)" maxlength="6">
+          <input type="text" id="newCodeInput" placeholder="8자리 (영문/숫자)" maxlength="8">
           <button class="btn-restore" id="createCodeBtn">만들기</button>
         </div>
       </div>
@@ -711,7 +711,7 @@
         <div class="sync-section-title">기존 코드로 연결하기</div>
         <p class="sync-desc">다른 기기에서 만든 코드를 입력하면, 이 기기의 목록이 그 코드의 목록으로 바뀝니다.</p>
         <div class="sync-join-row">
-          <input type="text" id="joinCodeInput" placeholder="6자리 (영문/숫자)" maxlength="6">
+          <input type="text" id="joinCodeInput" placeholder="8자리 (영문/숫자)" maxlength="8">
           <button class="btn-restore" id="joinCodeBtn">연결</button>
         </div>
       </div>
@@ -725,9 +725,9 @@
 
       <div class="sync-section">
         <div class="sync-section-title">코드 변경</div>
-        <p class="sync-desc">원하는 6자리 코드로 바꿉니다. 지금 목록은 그대로 새 코드로 옮겨지고, 예전 코드는 사용할 수 없게 됩니다. 다른 기기가 있다면 그 기기에서도 새 코드로 다시 연결해 주셔야 합니다.</p>
+        <p class="sync-desc">원하는 8자리 코드로 바꿉니다. 지금 목록은 그대로 새 코드로 옮겨지고, 예전 코드는 사용할 수 없게 됩니다. 다른 기기가 있다면 그 기기에서도 새 코드로 다시 연결해 주셔야 합니다.</p>
         <div class="sync-join-row">
-          <input type="text" id="changeCodeInput" placeholder="새 6자리 코드" maxlength="6">
+          <input type="text" id="changeCodeInput" placeholder="새 8자리 코드" maxlength="8">
           <button class="btn-restore" id="changeCodeBtn">변경</button>
         </div>
       </div>
@@ -1262,7 +1262,7 @@ let unsubscribe = null;
 let applyingRemote = false; // 원격 변경을 반영하는 동안 재전송(루프) 방지
 
 function isValidCode(code){
-  return /^[A-Za-z0-9]{6}$/.test(code);
+  return /^[A-Za-z0-9]{8}$/.test(code);
 }
 
 function updateModalView(){
@@ -1338,14 +1338,14 @@ function wrapSaveFunctions(){
 
 async function createNewCode(){
   const code = newCodeInput.value.trim().toUpperCase();
-  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
+  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 8자리를 입력해 주세요.'; return; }
   syncStatusMsg.textContent = '확인 중...';
   const ok = await ensureFirebase();
   if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
   const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
   const snap = await getDoc(doc(db, COLLECTION, code));
   if(snap.exists()){
-    syncStatusMsg.textContent = '이미 사용 중인 코드입니다. 다른 6자리 코드를 입력해 주세요.';
+    syncStatusMsg.textContent = '이미 사용 중인 코드입니다. 다른 8자리 코드를 입력해 주세요.';
     return;
   }
   localStorage.setItem(SYNC_CODE_KEY, code);
@@ -1358,7 +1358,7 @@ async function createNewCode(){
 
 async function joinExistingCode(){
   const code = joinCodeInput.value.trim().toUpperCase();
-  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
+  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 8자리를 입력해 주세요.'; return; }
   syncStatusMsg.textContent = '연결 중...';
   const ok = await ensureFirebase();
   if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
@@ -1387,13 +1387,13 @@ async function joinExistingCode(){
 async function changeSyncCode(){
   const oldCode = localStorage.getItem(SYNC_CODE_KEY);
   const newCode = changeCodeInput.value.trim().toUpperCase();
-  if(!isValidCode(newCode)){ syncStatusMsg2.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
+  if(!isValidCode(newCode)){ syncStatusMsg2.textContent = '영문/숫자 8자리를 입력해 주세요.'; return; }
   if(newCode === oldCode){ syncStatusMsg2.textContent = '현재 코드와 같습니다.'; return; }
   syncStatusMsg2.textContent = '확인 중...';
   const { doc, getDoc, setDoc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
   const snap = await getDoc(doc(db, COLLECTION, newCode));
   if(snap.exists()){
-    syncStatusMsg2.textContent = '이미 사용 중인 코드입니다. 다른 6자리 코드를 입력해 주세요.';
+    syncStatusMsg2.textContent = '이미 사용 중인 코드입니다. 다른 8자리 코드를 입력해 주세요.';
     return;
   }
   await setDoc(doc(db, COLLECTION, newCode), {
@@ -1428,11 +1428,11 @@ joinCodeBtn.addEventListener('click', joinExistingCode);
 joinCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') joinExistingCode(); });
 newCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') createNewCode(); });
 newCodeInput.addEventListener('input', ()=>{
-  const filtered = newCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  const filtered = newCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,8).toUpperCase();
   if(filtered !== newCodeInput.value) newCodeInput.value = filtered;
 });
 joinCodeInput.addEventListener('input', ()=>{
-  const filtered = joinCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  const filtered = joinCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,8).toUpperCase();
   if(filtered !== joinCodeInput.value) joinCodeInput.value = filtered;
 });
 copyCodeBtn.addEventListener('click', ()=>{
@@ -1448,7 +1448,7 @@ disconnectSyncBtn.addEventListener('click', disconnectSync);
 changeCodeBtn.addEventListener('click', changeSyncCode);
 changeCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') changeSyncCode(); });
 changeCodeInput.addEventListener('input', ()=>{
-  const filtered = changeCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  const filtered = changeCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,8).toUpperCase();
   if(filtered !== changeCodeInput.value) changeCodeInput.value = filtered;
 });
 
