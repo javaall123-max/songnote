@@ -700,15 +700,18 @@
 
       <div class="sync-section">
         <div class="sync-section-title">새로 시작하기</div>
-        <p class="sync-desc">이 기기의 목록을 기준으로 새 동기화 코드를 만듭니다.</p>
-        <button class="btn-restore sync-full-btn" id="createCodeBtn">새 코드 만들기</button>
+        <p class="sync-desc">이 기기의 목록을 기준으로, 사용할 6자리 코드(영문/숫자)를 직접 정해주세요.</p>
+        <div class="sync-join-row">
+          <input type="text" id="newCodeInput" placeholder="6자리 (영문/숫자)" maxlength="6">
+          <button class="btn-restore" id="createCodeBtn">만들기</button>
+        </div>
       </div>
 
       <div class="sync-section">
         <div class="sync-section-title">기존 코드로 연결하기</div>
         <p class="sync-desc">다른 기기에서 만든 코드를 입력하면, 이 기기의 목록이 그 코드의 목록으로 바뀝니다.</p>
         <div class="sync-join-row">
-          <input type="text" id="joinCodeInput" placeholder="코드 입력 (예: AB3K9F2Q)">
+          <input type="text" id="joinCodeInput" placeholder="6자리 (영문/숫자)" maxlength="6">
           <button class="btn-restore" id="joinCodeBtn">연결</button>
         </div>
       </div>
@@ -896,12 +899,29 @@ function deleteSong(){
   render();
 }
 
+let sortDir = 'asc';
+const SORT_LABELS = { num:'번호순', title:'제목순', singer:'가수명순', rating:'별점순' };
+
 function setSort(key){
-  sortKey = key;
-  document.querySelectorAll('.sort-btn').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.sort === key);
-  });
+  if(sortKey === key){
+    sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
+  }else{
+    sortKey = key;
+    sortDir = 'asc';
+  }
+  updateSortButtonsUI();
   render();
+}
+
+function updateSortButtonsUI(){
+  document.querySelectorAll('.sort-btn').forEach(btn=>{
+    const key = btn.dataset.sort;
+    const isActive = key === sortKey;
+    btn.classList.toggle('active', isActive);
+    btn.textContent = isActive
+      ? `${SORT_LABELS[key]} ${sortDir === 'asc' ? '▲' : '▼'}`
+      : SORT_LABELS[key];
+  });
 }
 
 function getSortedFiltered(){
@@ -915,20 +935,21 @@ function getSortedFiltered(){
     );
   }
   list.sort((a,b)=>{
+    let result = 0;
     if(sortKey === 'num'){
       const na = parseInt(a.num, 10);
       const nb = parseInt(b.num, 10);
-      if(!isNaN(na) && !isNaN(nb)) return na - nb;
-      return a.num.localeCompare(b.num, 'ko');
+      if(!isNaN(na) && !isNaN(nb)) result = na - nb;
+      else result = a.num.localeCompare(b.num, 'ko');
+    }else if(sortKey === 'title'){
+      result = a.title.localeCompare(b.title, 'ko');
+    }else if(sortKey === 'singer'){
+      result = a.singer.localeCompare(b.singer, 'ko');
+    }else if(sortKey === 'rating'){
+      result = (a.rating || 0) - (b.rating || 0);
+      if(result === 0) result = a.title.localeCompare(b.title, 'ko');
     }
-    if(sortKey === 'title') return a.title.localeCompare(b.title, 'ko');
-    if(sortKey === 'singer') return a.singer.localeCompare(b.singer, 'ko');
-    if(sortKey === 'rating'){
-      const diff = (b.rating || 0) - (a.rating || 0);
-      if(diff !== 0) return diff;
-      return a.title.localeCompare(b.title, 'ko');
-    }
-    return 0;
+    return sortDir === 'asc' ? result : -result;
   });
   return list;
 }
@@ -1174,6 +1195,7 @@ importFileInput.addEventListener('change', (e)=>{
   importFileInput.value = '';
 });
 
+updateSortButtonsUI();
 loadSongs();
 
 if('serviceWorker' in navigator){
@@ -1212,6 +1234,7 @@ const syncNotConfigured = document.getElementById('syncNotConfigured');
 const syncDisconnectedView = document.getElementById('syncDisconnectedView');
 const syncConnectedView = document.getElementById('syncConnectedView');
 const createCodeBtn = document.getElementById('createCodeBtn');
+const newCodeInput = document.getElementById('newCodeInput');
 const joinCodeInput = document.getElementById('joinCodeInput');
 const joinCodeBtn = document.getElementById('joinCodeBtn');
 const syncStatusMsg = document.getElementById('syncStatusMsg');
@@ -1226,11 +1249,8 @@ let auth = null;
 let unsubscribe = null;
 let applyingRemote = false; // 원격 변경을 반영하는 동안 재전송(루프) 방지
 
-function genCode(){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리는 글자(0,O,1,I) 제외
-  let out = '';
-  for(let i=0;i<8;i++) out += chars[Math.floor(Math.random()*chars.length)];
-  return out;
+function isValidCode(code){
+  return /^[A-Za-z0-9]{6}$/.test(code);
 }
 
 function updateModalView(){
@@ -1305,20 +1325,28 @@ function wrapSaveFunctions(){
 }
 
 async function createNewCode(){
-  syncStatusMsg.textContent = '연결 중...';
+  const code = newCodeInput.value.trim().toUpperCase();
+  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
+  syncStatusMsg.textContent = '확인 중...';
   const ok = await ensureFirebase();
   if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
-  const code = genCode();
+  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  const snap = await getDoc(doc(db, COLLECTION, code));
+  if(snap.exists()){
+    syncStatusMsg.textContent = '이미 사용 중인 코드입니다. 다른 6자리 코드를 입력해 주세요.';
+    return;
+  }
   localStorage.setItem(SYNC_CODE_KEY, code);
   await pushToCloud();
   startListening(code);
   syncStatusMsg.textContent = '';
+  newCodeInput.value = '';
   updateModalView();
 }
 
 async function joinExistingCode(){
   const code = joinCodeInput.value.trim().toUpperCase();
-  if(!code){ syncStatusMsg.textContent = '코드를 입력해 주세요.'; return; }
+  if(!isValidCode(code)){ syncStatusMsg.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
   syncStatusMsg.textContent = '연결 중...';
   const ok = await ensureFirebase();
   if(!ok){ syncStatusMsg.textContent = 'Firebase 설정을 먼저 완료해 주세요.'; return; }
@@ -1361,6 +1389,15 @@ syncOverlay.addEventListener('click', (e)=>{ if(e.target === syncOverlay) syncOv
 createCodeBtn.addEventListener('click', createNewCode);
 joinCodeBtn.addEventListener('click', joinExistingCode);
 joinCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') joinExistingCode(); });
+newCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') createNewCode(); });
+newCodeInput.addEventListener('input', ()=>{
+  const filtered = newCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  if(filtered !== newCodeInput.value) newCodeInput.value = filtered;
+});
+joinCodeInput.addEventListener('input', ()=>{
+  const filtered = joinCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  if(filtered !== joinCodeInput.value) joinCodeInput.value = filtered;
+});
 copyCodeBtn.addEventListener('click', ()=>{
   const code = localStorage.getItem(SYNC_CODE_KEY);
   if(code){
