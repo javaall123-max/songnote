@@ -722,6 +722,16 @@
       <p class="search-hint" style="margin-bottom:10px;">현재 이 코드로 연결되어 있습니다. 다른 기기에서도 아래 코드를 입력하면 목록이 공유됩니다.</p>
       <div class="sync-code-display" id="syncCodeDisplay"></div>
       <button class="btn-restore sync-full-btn" id="copyCodeBtn" style="margin-bottom:8px;">코드 복사</button>
+
+      <div class="sync-section">
+        <div class="sync-section-title">코드 변경</div>
+        <p class="sync-desc">원하는 6자리 코드로 바꿉니다. 지금 목록은 그대로 새 코드로 옮겨지고, 예전 코드는 사용할 수 없게 됩니다. 다른 기기가 있다면 그 기기에서도 새 코드로 다시 연결해 주셔야 합니다.</p>
+        <div class="sync-join-row">
+          <input type="text" id="changeCodeInput" placeholder="새 6자리 코드" maxlength="6">
+          <button class="btn-restore" id="changeCodeBtn">변경</button>
+        </div>
+      </div>
+
       <button class="btn-purge sync-full-btn" id="disconnectSyncBtn">연결 해제</button>
       <p class="sync-status" id="syncStatusMsg2"></p>
     </div>
@@ -1241,6 +1251,8 @@ const syncStatusMsg = document.getElementById('syncStatusMsg');
 const syncStatusMsg2 = document.getElementById('syncStatusMsg2');
 const syncCodeDisplay = document.getElementById('syncCodeDisplay');
 const copyCodeBtn = document.getElementById('copyCodeBtn');
+const changeCodeInput = document.getElementById('changeCodeInput');
+const changeCodeBtn = document.getElementById('changeCodeBtn');
 const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
 const syncDot = document.getElementById('syncDot');
 
@@ -1372,6 +1384,31 @@ async function joinExistingCode(){
   updateModalView();
 }
 
+async function changeSyncCode(){
+  const oldCode = localStorage.getItem(SYNC_CODE_KEY);
+  const newCode = changeCodeInput.value.trim().toUpperCase();
+  if(!isValidCode(newCode)){ syncStatusMsg2.textContent = '영문/숫자 6자리를 입력해 주세요.'; return; }
+  if(newCode === oldCode){ syncStatusMsg2.textContent = '현재 코드와 같습니다.'; return; }
+  syncStatusMsg2.textContent = '확인 중...';
+  const { doc, getDoc, setDoc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  const snap = await getDoc(doc(db, COLLECTION, newCode));
+  if(snap.exists()){
+    syncStatusMsg2.textContent = '이미 사용 중인 코드입니다. 다른 6자리 코드를 입력해 주세요.';
+    return;
+  }
+  await setDoc(doc(db, COLLECTION, newCode), {
+    songs: window.songs || [],
+    trash: window.trash || [],
+    updatedAt: Date.now()
+  });
+  try{ await deleteDoc(doc(db, COLLECTION, oldCode)); }catch(e){ /* 이전 코드 삭제 실패해도 무시 */ }
+  localStorage.setItem(SYNC_CODE_KEY, newCode);
+  startListening(newCode);
+  changeCodeInput.value = '';
+  syncStatusMsg2.textContent = '';
+  updateModalView();
+}
+
 function disconnectSync(){
   if(unsubscribe){ unsubscribe(); unsubscribe = null; }
   localStorage.removeItem(SYNC_CODE_KEY);
@@ -1408,6 +1445,12 @@ copyCodeBtn.addEventListener('click', ()=>{
   }
 });
 disconnectSyncBtn.addEventListener('click', disconnectSync);
+changeCodeBtn.addEventListener('click', changeSyncCode);
+changeCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') changeSyncCode(); });
+changeCodeInput.addEventListener('input', ()=>{
+  const filtered = changeCodeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0,6).toUpperCase();
+  if(filtered !== changeCodeInput.value) changeCodeInput.value = filtered;
+});
 
 // 앱 시작 시, 이미 연결된 코드가 있으면 자동으로 동기화 재개
 window.addEventListener('load', async ()=>{
